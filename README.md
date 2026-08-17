@@ -90,10 +90,14 @@ release tag (ghcr.io/nhatminh06/aegis-api:vX.Y.Z)
 The release tag and the scanned/signed digest are always the same bytes.
 Nothing is rebuilt between the scan and the tag.
 
-Deployment is controlled entirely by the Aegis repository: it pins the
-exact signed digest in Git, and Kyverno's admission policy there requires
-a valid signature from this repository's release workflow before the
-image is allowed to run.
+Deployment is controlled entirely by the Aegis repository. This repository
+never touches Kubernetes directly — no deploy step, no kubeconfig, no
+cluster credential anywhere in its CI. Once a release is signed, Flux
+Image Automation running in the Aegis cluster discovers it, selects it,
+and commits the exact digest into Aegis's own Git history; Kyverno's
+admission policy there independently requires a valid signature from this
+repository's release workflow before the image is allowed to run, so
+automating *which* release Git records never automates *trusting* it.
 
 ## Graceful shutdown
 
