@@ -50,14 +50,50 @@ curl localhost:8080/healthz
 
 The image is a multi-stage build: compiled with the Go toolchain, run from
 `gcr.io/distroless/static-debian12:nonroot` — no shell, no package manager,
-runs as uid 65532.
+runs as uid 65532. Both base images are pinned by digest, not a mutable
+tag, so a signed release digest doesn't depend on a base image silently
+moving underneath it.
 
 ## Releasing
 
-Push a tag matching `v*` (e.g. `v0.1.0`). CI runs the test suite, then
-builds and pushes `ghcr.io/nhatminh06/aegis-api:<tag>` to GitHub Container
-Registry. Untagged pushes to `main` only run tests — publishing a version
-is a deliberate, explicit act.
+Ordinary pushes to `main` (`.github/workflows/ci.yml`) only run
+`go vet`/`go test`/`go build`. Nothing is published, scanned, or signed
+until a version tag is pushed.
+
+**Published semver tags are immutable.** A tag is never moved, re-cut, or
+force-pushed once it exists — a new release always gets a new tag. If a
+release needs correcting, that's a new version, not an edit to the old one.
+
+Pushing a tag matching `v*` runs `.github/workflows/release.yml`:
+
+```
+verify the tagged commit is reachable from main
+       |
+tests / vet / build
+       |
+multi-platform build (linux/amd64, linux/arm64), pushed under a
+staging identity (sha-<commit>) — not the release tag yet
+       |
+Trivy scan of the exact digest, both platforms, fails on HIGH/CRITICAL
+       |
+SBOM (SPDX JSON) generated per platform via Syft
+       |
+Cosign keyless signature on the exact digest (GitHub Actions OIDC,
+no private key held anywhere) + SBOM attached as attestations
+       |
+signature verified in the same job, with issuer + identity constraints
+       |
+ONLY THEN: the same digest — never a rebuild — is promoted to the
+release tag (ghcr.io/nhatminh06/aegis-api:vX.Y.Z)
+```
+
+The release tag and the scanned/signed digest are always the same bytes.
+Nothing is rebuilt between the scan and the tag.
+
+Deployment is controlled entirely by the Aegis repository: it pins the
+exact signed digest in Git, and Kyverno's admission policy there requires
+a valid signature from this repository's release workflow before the
+image is allowed to run.
 
 ## Graceful shutdown
 
