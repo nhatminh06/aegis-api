@@ -6,6 +6,7 @@ import (
 	"net/http/httptest"
 	"strings"
 	"testing"
+	"time"
 
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -104,6 +105,24 @@ func TestWorkDeterministic(t *testing.T) {
 		if got.Result != tc.want {
 			t.Errorf("value=%s: expected result=%d, got %d", tc.input, tc.want, got.Result)
 		}
+	}
+}
+
+// TestFibonacciStaysLinear guards against fibonacci regressing from its
+// O(n) iterative form to an exponential one (v0.1.4 shipped exactly this
+// regression: correct results, correct status codes, but O(2^n) — a gap
+// TestWorkDeterministic alone doesn't catch, since it only checks the
+// returned value). The bound is generous on purpose: the iterative
+// implementation completes in low microseconds, so this only trips on a
+// genuine complexity-class regression, not on ordinary CI timing noise.
+func TestFibonacciStaysLinear(t *testing.T) {
+	start := time.Now()
+	got := fibonacci(maxFibonacciN)
+	if elapsed := time.Since(start); elapsed > 100*time.Millisecond {
+		t.Errorf("fibonacci(%d) took %v, want well under 100ms; an O(n) implementation should take microseconds — this suggests an accidental exponential-complexity regression", maxFibonacciN, elapsed)
+	}
+	if want := int64(102334155); got != want {
+		t.Errorf("fibonacci(%d) = %d, want %d", maxFibonacciN, got, want)
 	}
 }
 
