@@ -17,8 +17,14 @@ import (
 	"github.com/prometheus/client_golang/prometheus/promhttp"
 )
 
-// Version is set at build time via -ldflags; left as "dev" for local runs.
-var Version = "dev"
+// Version and Commit are set at build time via -ldflags; left at these
+// defaults for local runs. Commit is the full Git SHA the release was
+// built from — useful once a running Pod's version alone isn't enough to
+// tell which exact source state produced it.
+var (
+	Version = "dev"
+	Commit  = "unknown"
+)
 
 // maxFibonacciN bounds /api/v1/work so the response stays deterministic
 // and the computation stays O(n) with no risk of overflow: fib(40) is
@@ -135,12 +141,13 @@ func (s *Server) handleReadyz(w http.ResponseWriter, _ *http.Request) {
 type infoResponse struct {
 	Name        string `json:"name"`
 	Version     string `json:"version"`
+	Commit      string `json:"commit"`
 	Environment string `json:"environment"`
 }
 
 func (s *Server) handleInfo(w http.ResponseWriter, _ *http.Request) {
 	env := "development"
-	resp := infoResponse{Name: "aegis-api", Version: Version, Environment: env}
+	resp := infoResponse{Name: "aegis-api", Version: Version, Commit: Commit, Environment: env}
 	w.Header().Set("Content-Type", contentTypeJSON)
 	w.WriteHeader(http.StatusOK)
 	_ = json.NewEncoder(w).Encode(resp)

@@ -69,6 +69,7 @@ jobs:
           platforms: linux/amd64,linux/arm64
           build-args: |
             VERSION=${{ github.ref_name }}
+            COMMIT=${{ github.sha }}
           tags: ${{ env.IMAGE }}:sha-${{ github.sha }}
 
       - name: Resolve platform child digests

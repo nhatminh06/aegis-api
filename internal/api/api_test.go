@@ -71,6 +71,9 @@ func TestInfoStructure(t *testing.T) {
 	if got.Environment == "" {
 		t.Error("expected non-empty environment")
 	}
+	if got.Commit == "" {
+		t.Error("expected non-empty commit")
+	}
 }
 
 func TestWorkDeterministic(t *testing.T) {

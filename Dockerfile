@@ -14,10 +14,11 @@ RUN go mod download
 COPY cmd/ cmd/
 COPY internal/ internal/
 ARG VERSION=dev
+ARG COMMIT=unknown
 # CGO_ENABLED=0 for a static binary — nothing in the runtime image can
 # link against it. -trimpath keeps build-machine paths out of the binary.
 RUN CGO_ENABLED=0 go build -trimpath \
-      -ldflags="-s -w -X github.com/nhatminh06/aegis-api/internal/api.Version=${VERSION}" \
+      -ldflags="-s -w -X github.com/nhatminh06/aegis-api/internal/api.Version=${VERSION} -X github.com/nhatminh06/aegis-api/internal/api.Commit=${COMMIT}" \
       -o /out/aegis-api ./cmd/server
 
 # distroless:static — no shell, no package manager, no libc even, since the
