@@ -134,7 +134,16 @@ jobs:
 
       - uses: sigstore/cosign-installer@6f9f17788090df1f26f669e9d70d6ae9567deba6 # v4.1.2
         with:
-          cosign-release: "v3.1.3"
+          # Not the latest (v3.1.3): Cosign v3 defaults to writing ONLY
+          # the new Sigstore bundle format for a keyless signature, and
+          # the Kyverno version this cluster runs (1.18.2) cannot verify
+          # tlog inclusion against that format for a keyless attestor —
+          # confirmed by a live admission test that a v3.1.3-signed image
+          # verified fine with `cosign verify` but Kyverno's own verifier
+          # returned "no signatures found" for the identical digest.
+          # v2.6.5 is the last v2.x release and writes the signature
+          # format Kyverno's bundled verifier actually supports.
+          cosign-release: "v2.6.5"
 
       # Keyless: no private key anywhere. Cosign exchanges this job's OIDC
       # token for a short-lived certificate from Fulcio binding the
